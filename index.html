@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBX Call Script</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        form {
+            max-width: 400px;
+            margin: auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<h2>PBX Call Script</h2>
+<form id="callForm">
+    <label for="pbxUrl">PBX API URL:</label>
+    <input type="text" id="pbxUrl" placeholder="http://your-pbx/api" required>
+
+    <label for="authToken">PBX API Token:</label>
+    <input type="text" id="authToken" placeholder="Enter your API Token" required>
+
+    <label for="fromNumber">Caller ID (From):</label>
+    <input type="text" id="fromNumber" placeholder="+1234567890" required>
+
+    <label for="sipUri">SIP URI (To):</label>
+    <input type="text" id="sipUri" placeholder="sip:user@domain.com" required>
+
+    <label for="mobileNumber">Mobile Number (To):</label>
+    <input type="text" id="mobileNumber" placeholder="+1234567890" required>
+
+    <button type="button" onclick="initiatePBXCalls()">Make Calls</button>
+</form>
+
+<div id="result" class="result"></div>
+
+<script>
+    async function initiatePBXCalls() {
+        const pbxUrl = document.getElementById("pbxUrl").value;
+        const authToken = document.getElementById("authToken").value;
+        const fromNumber = document.getElementById("fromNumber").value;
+        const sipUri = document.getElementById("sipUri").value;
+        const mobileNumber = document.getElementById("mobileNumber").value;
+
+        const resultDiv = document.getElementById("result");
+
+        resultDiv.innerHTML = "Initiating calls...";
+
+        try {
+            // First call to SIP URI
+            const sipResponse = await fetch(pbxUrl + "/makecall", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    from: fromNumber,
+                    to: sipUri,
+                    type: "SIP"
+                })
+            });
+
+            const sipData = await sipResponse.json();
+            if (!sipResponse.ok) throw sipData;
+
+            // Second call to Mobile Number
+            const mobileResponse = await fetch(pbxUrl + "/makecall", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    from: fromNumber,
+                    to: mobileNumber,
+                    type: "PSTN"
+                })
+            });
+
+            const mobileData = await mobileResponse.json();
+            if (!mobileResponse.ok) throw mobileData;
+
+            resultDiv.innerHTML = `
+                <p>Calls initiated successfully:</p>
+                <ul>
+                    <li>SIP Call ID: ${sipData.call_id}</li>
+                    <li>Mobile Call ID: ${mobileData.call_id}</li>
+                </ul>
+            `;
+        } catch (error) {
+            resultDiv.innerHTML = `<p>Error initiating calls: ${JSON.stringify(error)}</p>`;
+        }
+    }
+</script>
+
+</body>
+</html>
